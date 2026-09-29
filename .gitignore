@@ -1,0 +1,29 @@
+# ---------- data & outputs ----------
+input/*.json
+input/*.jsonl
+output/
+logs/
+cache/
+models/
+
+# ---------- secrets ----------
+.env
+*.key
+*.pem
+
+# ---------- python ----------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# ---------- neo4j dumps ----------
+*.dump
+neo4j_data/
+
+# ---------- OS ----------
+.DS_Store
+*.swp

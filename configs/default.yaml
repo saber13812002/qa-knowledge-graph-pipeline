@@ -1,0 +1,48 @@
+run:
+  name: falsafe_siasi_v1
+  database_name: falsafe_siasi
+  input_json: /input/100_books_Falsafe_Siasi.json
+  output_dir: /output
+  cache_dir: /cache
+
+chunking:
+  strategy: page
+  min_text_chars: 20
+  skip_metadata_pages: false
+
+embedding:
+  model: Qwen/Qwen3-Embedding-4B
+  dim: 2560
+  batch_size: 8
+  max_seq_length: 2048
+  device: cuda
+  dtype: bfloat16
+  normalize: true
+
+llm:
+  base_url: http://vllm:8000/v1
+  model: Qwen/Qwen2.5-7B-Instruct-AWQ
+  max_tokens: 2048
+  temperature: 0.1
+  top_p: 0.9
+  concurrency: 8
+  entity_types:
+    - Concept
+    - Person
+    - Group
+    - Organization
+    - Place
+    - Event
+    - Book
+    - Text
+    - Deity
+    - Object
+    - Date
+    - Field
+  max_relations_per_chunk: 30
+  max_entities_per_chunk: 40
+
+neo4j:
+  version: "2025.10.1-enterprise"
+  heap: 8G
+  pagecache: 4G

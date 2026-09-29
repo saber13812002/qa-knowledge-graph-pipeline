@@ -1,0 +1,71 @@
+name: qa_pipeline
+
+services:
+
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: qap_vllm
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=0
+      - HF_HOME=/models/hf
+      - VLLM_USE_V1=1
+    volumes:
+      - ./models:/models
+    ports:
+      - "8001:8000"
+    command: --model Qwen/Qwen2.5-7B-Instruct-AWQ --quantization awq_marlin --max-model-len 8192 --gpu-memory-utilization 0.80 --dtype float16 --served-model-name Qwen/Qwen2.5-7B-Instruct-AWQ --trust-remote-code
+    ipc: host
+    shm_size: 16g
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/v1/models || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 30
+      start_period: 300s
+
+  pipeline:
+    build: .
+    image: qap_pipeline:latest
+    container_name: qap_pipeline
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=0
+      - HF_HOME=/models/hf
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./input:/input:ro
+      - ./output:/output
+      - ./cache:/cache
+      - ./models:/models
+      - ./logs:/logs
+      - ./scripts:/work/scripts
+      - ./configs:/work/configs
+    working_dir: /work
+    depends_on:
+      vllm:
+        condition: service_healthy
+    ipc: host
+    shm_size: 8g
+    command: bash
+    tty: true
+    stdin_open: true
+
+  neo4j-build:
+    image: neo4j:2025.10.1-enterprise
+    container_name: qap_neo4j_build
+    environment:
+      - NEO4J_ACCEPT_LICENSE_AGREEMENT=yes
+      - NEO4J_AUTH=neo4j/hosh01__
+      - NEO4J_PLUGINS=["apoc"]
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*
+      - NEO4J_server_memory_heap_max__size=8G
+      - NEO4J_server_memory_pagecache_size=4G
+    volumes:
+      - ./output/neo4j_build_data:/data
+      - ./output:/import
+    ports:
+      - "7475:7474"
+      - "7688:7687"
+    profiles: ["build"]
